@@ -8,7 +8,6 @@ package rv32_pkg is
   subtype addr_t is std_logic_vector(XLEN - 1 downto 0);
   subtype reg_addr_t is std_logic_vector(4 downto 0);
 
-  -- Opcode field (instr[6:0])
   constant OP_LUI    : std_logic_vector(6 downto 0) := "0110111";
   constant OP_AUIPC  : std_logic_vector(6 downto 0) := "0010111";
   constant OP_JAL    : std_logic_vector(6 downto 0) := "1101111";
@@ -21,7 +20,6 @@ package rv32_pkg is
   constant OP_MISC   : std_logic_vector(6 downto 0) := "0001111";
   constant OP_SYSTEM : std_logic_vector(6 downto 0) := "1110011";
 
-  -- ALU operation select
   type alu_op_t is (
     ALU_ADD, ALU_SUB,
     ALU_AND, ALU_OR, ALU_XOR,
@@ -37,21 +35,23 @@ package rv32_pkg is
   type mem_size_t is (MEM_B, MEM_H, MEM_W);
 
   type ctrl_t is record
-    reg_write  : std_logic;
-    mem_read   : std_logic;
-    mem_write  : std_logic;
-    mem_size   : mem_size_t;
+    reg_write    : std_logic;
+    mem_read     : std_logic;
+    mem_write    : std_logic;
+    mem_size     : mem_size_t;
     mem_unsigned : std_logic;
-    alu_op     : alu_op_t;
-    alu_src_b  : std_logic; -- 0=rs2, 1=imm
-    branch_op  : branch_op_t;
-    jump       : std_logic; -- JAL/JALR
-    jalr       : std_logic;
-    lui        : std_logic;
-    auipc      : std_logic;
-    halt       : std_logic; -- ECALL/EBREAK
-    illegal    : std_logic;
-    wb_pc4     : std_logic; -- write PC+4 (JAL/JALR)
+    alu_op       : alu_op_t;
+    alu_src_b    : std_logic; -- 0=rs2, 1=imm
+    branch_op    : branch_op_t;
+    jump         : std_logic;
+    jalr         : std_logic;
+    lui          : std_logic;
+    auipc        : std_logic;
+    halt         : std_logic;
+    illegal      : std_logic;
+    wb_pc4       : std_logic;
+    use_rs1      : std_logic;
+    use_rs2      : std_logic;
   end record;
 
   constant CTRL_NOP : ctrl_t := (
@@ -69,22 +69,65 @@ package rv32_pkg is
     auipc        => '0',
     halt         => '0',
     illegal      => '0',
-    wb_pc4       => '0'
+    wb_pc4       => '0',
+    use_rs1      => '0',
+    use_rs2      => '0'
   );
 
-  -- Memory map (v1)
   constant IMEM_BASE : unsigned(31 downto 0) := x"00000000";
   constant IMEM_SIZE : integer := 8 * 1024;
   constant DMEM_BASE : unsigned(31 downto 0) := x"10000000";
   constant DMEM_SIZE : integer := 8 * 1024;
   constant MMIO_BASE : unsigned(31 downto 0) := x"20000000";
 
+  -- MMIO offsets from MMIO_BASE
+  constant MMIO_LED_OFF    : unsigned(31 downto 0) := x"00000000";
+  constant MMIO_UART_OFF   : unsigned(31 downto 0) := x"00000004";
+  constant MMIO_UARTST_OFF : unsigned(31 downto 0) := x"00000008";
+  constant MMIO_STATUS_OFF : unsigned(31 downto 0) := x"0000000C";
+
   function to_word(n : integer) return word_t;
+  function imm_i(instr : word_t) return word_t;
+  function imm_s(instr : word_t) return word_t;
+  function imm_b(instr : word_t) return word_t;
+  function imm_u(instr : word_t) return word_t;
+  function imm_j(instr : word_t) return word_t;
 end package;
 
 package body rv32_pkg is
   function to_word(n : integer) return word_t is
   begin
     return std_logic_vector(to_signed(n, XLEN));
+  end function;
+
+  function imm_i(instr : word_t) return word_t is
+  begin
+    return std_logic_vector(resize(signed(instr(31 downto 20)), XLEN));
+  end function;
+
+  function imm_s(instr : word_t) return word_t is
+    variable i : std_logic_vector(11 downto 0);
+  begin
+    i := instr(31 downto 25) & instr(11 downto 7);
+    return std_logic_vector(resize(signed(i), XLEN));
+  end function;
+
+  function imm_b(instr : word_t) return word_t is
+    variable i : std_logic_vector(12 downto 0);
+  begin
+    i := instr(31) & instr(7) & instr(30 downto 25) & instr(11 downto 8) & '0';
+    return std_logic_vector(resize(signed(i), XLEN));
+  end function;
+
+  function imm_u(instr : word_t) return word_t is
+  begin
+    return instr(31 downto 12) & x"000";
+  end function;
+
+  function imm_j(instr : word_t) return word_t is
+    variable i : std_logic_vector(20 downto 0);
+  begin
+    i := instr(31) & instr(19 downto 12) & instr(20) & instr(30 downto 21) & '0';
+    return std_logic_vector(resize(signed(i), XLEN));
   end function;
 end package body;
