@@ -42,7 +42,6 @@ begin
         addr <= x"00000004"; wdata <= x"A1B2C3D4"; be <= "1111"; we <= '1';
         tick;
         we <= '0';
-        tick;
         wait for 1 ns;
         check_equal(rdata, std_logic_vector'(x"A1B2C3D4"));
       elsif run("byte_enable") then
@@ -51,7 +50,6 @@ begin
         wdata <= x"0000005A"; be <= "0001"; we <= '1';
         tick;
         we <= '0';
-        tick;
         wait for 1 ns;
         check_equal(rdata, std_logic_vector'(x"FFFFFF5A"));
       end if;

@@ -3,8 +3,10 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.rv32_pkg.all;
 
--- Byte-addressable data memory with byte enables (BRAM-style, 1-cycle sync read).
--- Read-during-write returns the previous (pre-write) word at that address.
+-- Byte-addressable data memory with byte enables.
+-- Combinational read (classic MEM/WB); sync write.
+-- 8 KiB is fine for sim; FPGA may map to distributed RAM or a sync-BRAM
+-- variant later.
 entity dmem is
   generic (
     DEPTH_BYTES : positive := DMEM_SIZE
@@ -31,23 +33,16 @@ begin
     variable word : word_t;
   begin
     if rising_edge(clk) then
-      rdata <= ram(word_idx);
       if we = '1' then
         word := ram(word_idx);
-        if be(0) = '1' then
-          word(7 downto 0) := wdata(7 downto 0);
-        end if;
-        if be(1) = '1' then
-          word(15 downto 8) := wdata(15 downto 8);
-        end if;
-        if be(2) = '1' then
-          word(23 downto 16) := wdata(23 downto 16);
-        end if;
-        if be(3) = '1' then
-          word(31 downto 24) := wdata(31 downto 24);
-        end if;
+        if be(0) = '1' then word(7 downto 0) := wdata(7 downto 0); end if;
+        if be(1) = '1' then word(15 downto 8) := wdata(15 downto 8); end if;
+        if be(2) = '1' then word(23 downto 16) := wdata(23 downto 16); end if;
+        if be(3) = '1' then word(31 downto 24) := wdata(31 downto 24); end if;
         ram(word_idx) <= word;
       end if;
     end if;
   end process;
+
+  rdata <= ram(word_idx);
 end architecture;

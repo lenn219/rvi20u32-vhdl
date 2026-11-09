@@ -1,5 +1,7 @@
 # VUnit / GHDL
 vunit_out/
+compliance/work/
+
 *.o
 *.cf
 *.lst

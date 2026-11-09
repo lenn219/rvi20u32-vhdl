@@ -3,17 +3,17 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.rv32_pkg.all;
 
--- Word-addressed instruction memory (BRAM-style, 1-cycle sync read).
--- DEPTH_WORDS defaults to 8 KiB / 4 = 2048.
+-- Word-addressed instruction memory.
+-- Combinational read (classic 5-stage IF); sync write for TB/program load.
+-- Small depth maps to distributed RAM on Artix-7; BRAM sync-read can replace later.
 entity imem is
   generic (
     DEPTH_WORDS : positive := IMEM_SIZE / 4
   );
   port (
     clk   : in  std_logic;
-    addr  : in  addr_t;   -- byte address; word-aligned
+    addr  : in  addr_t;
     rdata : out word_t;
-    -- Optional write port (sim load / future); tied off on FPGA ROM use
     we    : in  std_logic := '0';
     wdata : in  word_t := (others => '0')
   );
@@ -32,7 +32,8 @@ begin
       if we = '1' then
         ram(word_idx) <= wdata;
       end if;
-      rdata <= ram(word_idx);
     end if;
   end process;
+
+  rdata <= ram(word_idx);
 end architecture;
