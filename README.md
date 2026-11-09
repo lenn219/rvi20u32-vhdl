@@ -11,6 +11,8 @@ Classic **5-stage pipelined RV32I** CPU in modular VHDL.
 
 **P2 milestone:** full IF→ID→EX→MEM→WB pipeline with forwarding, load-use stall, control flush, WB→ID bypass. Smoke program (sum 1..5) runs to `ECALL` with LED/DMEM result `15`.
 
+**Arch-tests:** harness for official [riscv-arch-test](https://github.com/riscv-non-isa/riscv-arch-test) (legacy 3.9.1 `rv32i_m/I`). DUT passes `addi-01` vs Unicorn RV32 reference signature. See `docs/compliance/riscv-arch-test.md` — full certification needs Zicsr/traps (not in v1).
+
 ## Simulate
 
 ```bash
