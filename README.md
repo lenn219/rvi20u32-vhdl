@@ -32,6 +32,8 @@ fpga/a7_200t/  FPGA wrapper stub (constraints TBD)
 python3 sim/run.py -v
 ```
 
+GitHub Actions workflow template: `docs/ci.yml.example` (enable as `.github/workflows/ci.yml` once a token with `workflow` scope is available).
+
 ## Memory map (v1)
 
 | Region | Base | Size |
