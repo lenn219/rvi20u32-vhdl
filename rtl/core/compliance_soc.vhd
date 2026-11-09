@@ -3,20 +3,19 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.rv32_pkg.all;
 
--- Compliance SoC: same 5-stage core as cpu_top, unified RAM @ 0x80000000.
--- Used with riscv-arch-test (legacy) ELFs linked for Spike-compatible map.
+-- Compliance SoC: 5-stage core + unified RAM @ 0x80000000.
+-- RV32IM + minimal Zicsr / M-mode traps for riscv-arch-test.
 entity compliance_soc is
   generic (
     RAM_DEPTH_BYTES : positive := 1024 * 1024;
     RESET_PC        : addr_t := x"80000000";
-    TOHOST_ADDR     : addr_t := x"800048F0"  -- overridden per-ELF by TB
+    TOHOST_ADDR     : addr_t := x"800048F0"
   );
   port (
     clk        : in  std_logic;
     rst        : in  std_logic;
     halted     : out std_logic;
     halt_ill   : out std_logic;
-    -- Host preload / signature peek
     load_we    : in  std_logic := '0';
     load_addr  : in  addr_t := (others => '0');
     load_wdata : in  word_t := (others => '0');
@@ -43,6 +42,7 @@ architecture rtl of compliance_soc is
   signal idex_ctrl           : ctrl_t := CTRL_NOP;
   signal idex_pc             : addr_t := (others => '0');
   signal idex_imm            : word_t := (others => '0');
+  signal idex_instr          : word_t := (others => '0');
   signal idex_rs1, idex_rs2, idex_rd : reg_addr_t := (others => '0');
   signal idex_rdata1, idex_rdata2 : word_t := (others => '0');
 
@@ -81,6 +81,23 @@ architecture rtl of compliance_soc is
   signal halted_q            : std_logic := '0';
   signal halt_ill_q          : std_logic := '0';
   signal tohost_hit          : std_logic := '0';
+  signal freeze              : std_logic;
+
+  -- CSR / trap
+  signal csr_rdata           : word_t;
+  signal csr_illegal         : std_logic;
+  signal csr_we              : std_logic;
+  signal csr_rs1_uimm        : word_t;
+  signal mtvec_r, mepc_r     : addr_t;
+  signal trap_take           : std_logic;
+  signal mret_take           : std_logic;
+  signal trap_cause          : word_t;
+  signal trap_tval           : word_t;
+  signal misalign_ld         : std_logic;
+  signal misalign_st         : std_logic;
+  signal trap_req            : std_logic;
+  signal mtvec_is_zero       : std_logic;
+  signal squash_exmem        : std_logic;
 
   function align_store(data : word_t; addr : addr_t; size : mem_size_t) return word_t is
     variable r : word_t := (others => '0');
@@ -149,7 +166,8 @@ architecture rtl of compliance_soc is
     end case;
   end function;
 begin
-  halted   <= halted_q or tohost_hit;
+  freeze   <= halted_q or tohost_hit;
+  halted   <= freeze;
   halt_ill <= halt_ill_q;
 
   i_addr <= load_addr when load_we = '1' else pc_q;
@@ -178,22 +196,79 @@ begin
       '1' when idex_ctrl.branch_op = BR_GEU and cmp_ltu = '0' else
       '0';
 
-  redirect <= (idex_ctrl.jump or branch_taken) and not (halted_q or tohost_hit);
+  misalign_ld <= '1' when idex_ctrl.mem_read = '1' and (
+      (idex_ctrl.mem_size = MEM_W and alu_y(1 downto 0) /= "00") or
+      (idex_ctrl.mem_size = MEM_H and alu_y(0) /= '0')
+    ) else '0';
+  misalign_st <= '1' when idex_ctrl.mem_write = '1' and (
+      (idex_ctrl.mem_size = MEM_W and alu_y(1 downto 0) /= "00") or
+      (idex_ctrl.mem_size = MEM_H and alu_y(0) /= '0')
+    ) else '0';
+
+  trap_req <= idex_ctrl.illegal or idex_ctrl.is_ecall or idex_ctrl.is_ebreak
+              or csr_illegal or misalign_ld or misalign_st;
+  mtvec_is_zero <= '1' when unsigned(mtvec_r) = 0 else '0';
+
+  trap_cause <=
+      CAUSE_ILLEGAL_INSTR    when idex_ctrl.illegal = '1' or csr_illegal = '1' else
+      CAUSE_ECALL_M          when idex_ctrl.is_ecall = '1' else
+      CAUSE_BREAKPOINT       when idex_ctrl.is_ebreak = '1' else
+      CAUSE_MISALIGNED_LOAD  when misalign_ld = '1' else
+      CAUSE_MISALIGNED_STORE when misalign_st = '1' else
+      (others => '0');
+
+  -- Breakpoint: arch-test expects mtval = faulting PC (Spike-compatible).
+  trap_tval <=
+      idex_instr when (idex_ctrl.illegal = '1' or csr_illegal = '1') else
+      alu_y      when (misalign_ld = '1' or misalign_st = '1') else
+      idex_pc    when idex_ctrl.is_ebreak = '1' else
+      (others => '0');
+
+  -- If mtvec not programmed, ecall/ebreak/illegal halt (smoke / bare metal)
+  trap_take <= trap_req and not mtvec_is_zero and not freeze;
+  mret_take <= idex_ctrl.is_mret and not trap_req and not freeze;
+
+  redirect <= ((idex_ctrl.jump or branch_taken) and not trap_req and not mret_take)
+              or trap_take or mret_take;
 
   redirect_target <=
+      mtvec_r when trap_take = '1' else
+      mepc_r  when mret_take = '1' else
       std_logic_vector(resize(unsigned(fwd_rs1) + unsigned(idex_imm), 32) and x"FFFFFFFE")
         when idex_ctrl.jalr = '1' else
       std_logic_vector(unsigned(idex_pc) + unsigned(idex_imm));
 
+  squash_exmem <= trap_take or mret_take or (trap_req and mtvec_is_zero);
+
   pc_next <= redirect_target when redirect = '1'
              else std_logic_vector(unsigned(pc_q) + 4);
+
+  csr_rs1_uimm <=
+      std_logic_vector(resize(unsigned(idex_rs1), 32))
+        when (idex_ctrl.csr_op = CSR_RWI or idex_ctrl.csr_op = CSR_RSI
+           or idex_ctrl.csr_op = CSR_RCI)
+      else fwd_rs1;
+
+  csr_we <= '1' when idex_ctrl.csr_op /= CSR_NONE and trap_req = '0'
+                 and freeze = '0' and load_we = '0' else '0';
+
+  u_csr : entity work.csr_file
+    port map (
+      clk => clk, rst => rst,
+      csr_op => idex_ctrl.csr_op, csr_addr => idex_imm(11 downto 0),
+      rs1_or_uimm => csr_rs1_uimm, csr_rdata => csr_rdata,
+      csr_illegal => csr_illegal, csr_we => csr_we,
+      trap_take => trap_take, trap_pc => idex_pc,
+      trap_cause => trap_cause, trap_tval => trap_tval,
+      mret_take => mret_take, mtvec_out => mtvec_r, mepc_out => mepc_r
+    );
 
   process (clk)
   begin
     if rising_edge(clk) then
       if rst = '1' then
         pc_q <= RESET_PC;
-      elsif (halted_q = '0' and tohost_hit = '0') and stall = '0' then
+      elsif freeze = '0' and stall = '0' then
         pc_q <= pc_next;
       end if;
     end if;
@@ -206,7 +281,7 @@ begin
         ifid_pc    <= RESET_PC;
         ifid_instr <= x"00000013";
         ifid_valid <= '0';
-      elsif (halted_q = '0' and tohost_hit = '0') and stall = '0' and load_we = '0' then
+      elsif freeze = '0' and stall = '0' and load_we = '0' then
         ifid_pc    <= pc_q;
         ifid_instr <= instr_if;
         ifid_valid <= '1';
@@ -220,7 +295,7 @@ begin
       rs1 => dec_rs1, rs2 => dec_rs2, rd => dec_rd
     );
 
-  rf_we <= memwb_ctrl.reg_write and not halted_q and not tohost_hit;
+  rf_we <= memwb_ctrl.reg_write and not freeze;
 
   u_regfile : entity work.regfile
     port map (
@@ -262,11 +337,12 @@ begin
       if rst = '1' or flush_idex = '1' then
         idex_ctrl <= CTRL_NOP;
         idex_pc <= (others => '0'); idex_imm <= (others => '0');
+        idex_instr <= (others => '0');
         idex_rs1 <= (others => '0'); idex_rs2 <= (others => '0'); idex_rd <= (others => '0');
         idex_rdata1 <= (others => '0'); idex_rdata2 <= (others => '0');
-      elsif halted_q = '0' and tohost_hit = '0' and load_we = '0' then
+      elsif freeze = '0' and load_we = '0' then
         if ifid_valid = '1' then idex_ctrl <= dec_ctrl; else idex_ctrl <= CTRL_NOP; end if;
-        idex_pc <= ifid_pc; idex_imm <= dec_imm;
+        idex_pc <= ifid_pc; idex_imm <= dec_imm; idex_instr <= ifid_instr;
         idex_rs1 <= dec_rs1; idex_rs2 <= dec_rs2; idex_rd <= dec_rd;
         idex_rdata1 <= rf_rdata1_byp; idex_rdata2 <= rf_rdata2_byp;
       end if;
@@ -297,17 +373,31 @@ begin
         exmem_ctrl <= CTRL_NOP; exmem_alu <= (others => '0');
         exmem_store <= (others => '0'); exmem_rd <= (others => '0');
         exmem_pc4 <= (others => '0');
-      elsif halted_q = '0' and tohost_hit = '0' and load_we = '0' then
-        exmem_ctrl <= idex_ctrl;
-        if idex_ctrl.lui = '1' then exmem_alu <= idex_imm; else exmem_alu <= alu_y; end if;
-        exmem_store <= fwd_rs2; exmem_rd <= idex_rd;
-        exmem_pc4 <= std_logic_vector(unsigned(idex_pc) + 4);
+      elsif freeze = '0' and load_we = '0' then
+        if squash_exmem = '1' then
+          exmem_ctrl <= CTRL_NOP;
+          exmem_alu <= (others => '0');
+          exmem_store <= (others => '0');
+          exmem_rd <= (others => '0');
+          exmem_pc4 <= (others => '0');
+        else
+          exmem_ctrl <= idex_ctrl;
+          if idex_ctrl.csr_op /= CSR_NONE then
+            exmem_alu <= csr_rdata;
+          elsif idex_ctrl.lui = '1' then
+            exmem_alu <= idex_imm;
+          else
+            exmem_alu <= alu_y;
+          end if;
+          exmem_store <= fwd_rs2; exmem_rd <= idex_rd;
+          exmem_pc4 <= std_logic_vector(unsigned(idex_pc) + 4);
+        end if;
       end if;
     end if;
   end process;
 
   d_addr  <= exmem_alu;
-  d_we    <= exmem_ctrl.mem_write and not halted_q and not tohost_hit;
+  d_we    <= exmem_ctrl.mem_write and not freeze;
   d_be    <= byte_enables(exmem_alu, exmem_ctrl.mem_size) when exmem_ctrl.mem_write = '1'
              else (others => '0');
   d_wdata <= align_store(exmem_store, exmem_alu, exmem_ctrl.mem_size);
@@ -330,7 +420,7 @@ begin
       if rst = '1' then
         memwb_ctrl <= CTRL_NOP; memwb_alu <= (others => '0'); memwb_load <= (others => '0');
         memwb_rd <= (others => '0'); memwb_pc4 <= (others => '0');
-      elsif halted_q = '0' and tohost_hit = '0' and load_we = '0' then
+      elsif freeze = '0' and load_we = '0' then
         memwb_ctrl <= exmem_ctrl; memwb_alu <= exmem_alu;
         memwb_load <= load_data; memwb_rd <= exmem_rd; memwb_pc4 <= exmem_pc4;
       end if;
@@ -341,14 +431,17 @@ begin
              memwb_load when memwb_ctrl.mem_read = '1' else
              memwb_alu;
 
+  -- Halt when exception and mtvec not set (keeps smoke ECALL working)
   process (clk)
   begin
     if rising_edge(clk) then
       if rst = '1' then
         halted_q <= '0'; halt_ill_q <= '0';
-      elsif memwb_ctrl.halt = '1' then
+      elsif trap_req = '1' and mtvec_is_zero = '1' and freeze = '0' then
         halted_q <= '1';
-        if memwb_ctrl.illegal = '1' then halt_ill_q <= '1'; end if;
+        if idex_ctrl.illegal = '1' or csr_illegal = '1' then
+          halt_ill_q <= '1';
+        end if;
       end if;
     end if;
   end process;

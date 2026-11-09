@@ -11,11 +11,15 @@ OBJDUMP="${RISCV_OBJDUMP:-riscv64-linux-gnu-objdump}"
 
 TEST_SRC="${1:?usage: compile_one.sh path/to/test.S [outdir]}"
 OUT_DIR="${2:-$COMP/work/$(basename "$TEST_SRC" .S)}"
+MARCH="${RISCV_MARCH:-rv32im}"
+# Extra -D flags, e.g. EXTRA_DEFS="-Drvtest_mtrap_routine" for privilege tests
+EXTRA_DEFS="${EXTRA_DEFS:-}"
 mkdir -p "$OUT_DIR"
 
-"$GCC" -march=rv32i -mabi=ilp32 -static -mcmodel=medany \
+# shellcheck disable=SC2086
+"$GCC" -march="$MARCH" -mabi=ilp32 -static -mcmodel=medany \
   -fvisibility=hidden -nostdlib -nostartfiles \
-  -DXLEN=32 -DTEST_CASE_1=True \
+  -DXLEN=32 -DTEST_CASE_1=True $EXTRA_DEFS \
   -T "$COMP/env/link.ld" \
   -I "$COMP/env" \
   -I "$ARCH_TEST/riscv-test-suite/env" \
