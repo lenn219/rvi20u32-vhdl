@@ -1,0 +1,33 @@
+# VUnit / GHDL
+vunit_out/
+*.o
+*.cf
+*.lst
+*.vcd
+*.fst
+*.ghw
+tb/vunit_out/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Vivado
+fpga/**/*.cache/
+fpga/**/*.hw/
+fpga/**/*.runs/
+fpga/**/*.sim/
+fpga/**/*.ip_user_files/
+fpga/**/*.xpr
+*.jou
+*.log
+*.str
+.Xil/
