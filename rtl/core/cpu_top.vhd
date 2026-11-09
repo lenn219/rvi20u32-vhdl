@@ -7,7 +7,8 @@ use work.rv32_pkg.all;
 entity cpu_top is
   generic (
     IMEM_DEPTH_WORDS : positive := IMEM_SIZE / 4;
-    DMEM_DEPTH_BYTES : positive := DMEM_SIZE
+    DMEM_DEPTH_BYTES : positive := DMEM_SIZE;
+    UART_CLKS_PER_BIT : positive := 434  -- 50 MHz / 115200
   );
   port (
     clk        : in  std_logic;
@@ -467,6 +468,7 @@ begin
     );
 
   u_uart : entity work.mmio_uart_tx
+    generic map (CLKS_PER_BIT => UART_CLKS_PER_BIT)
     port map (
       clk => clk, rst => rst, we_data => uart_we, wdata => d_wdata,
       rdata_st => uartst_rdata, tx => uart_tx,

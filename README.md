@@ -3,7 +3,7 @@
 Classic **5-stage pipelined RV32I** CPU in modular VHDL.
 
 - **ISA:** pure RV32I (no M/C/Zicsr). `FENCE` / `FENCE.I` = NOP; `ECALL`/`EBREAK` = halt.
-- **Memory:** on-chip IMEM + DMEM (async read / sync write) + MMIO (LEDs, UART TX stub).
+- **Memory:** on-chip IMEM + DMEM (async read / sync write) + MMIO (LEDs, UART TX 8N1).
 - **Target:** Xilinx Artix-7 **XC7A200T**, CPU clock **50 MHz**; board XDC deferred.
 - **Sim:** GHDL + VUnit. **Synth:** Vivado (wrapper in `fpga/a7_200t/`).
 
