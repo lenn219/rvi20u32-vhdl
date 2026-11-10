@@ -64,9 +64,10 @@ begin
 
   uart_tx <= tx;
 
-  -- Active-low LEDs: light when driving '0'
-  led(0) <= rst_sync;      -- lit while CPU out of reset (alive)
-  led(1) <= not halted;    -- lit when halted (demo loops forever → off)
+  -- Active-low board LEDs driven by CPU MMIO @ 0x20000000 (soft blink in uart_hello.hex).
+  -- Invert: software writes 1 = LED on.
+  led(0) <= not leds_cpu(0);
+  led(1) <= not leds_cpu(1);
 
   -- uart_rx reserved for future RX MMIO; pin is constrained in XDC
 end architecture;

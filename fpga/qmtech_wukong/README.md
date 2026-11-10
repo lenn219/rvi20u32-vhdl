@@ -29,17 +29,19 @@ vivado -mode batch -source fpga/qmtech_wukong/vivado/create_project.tcl
 Cross-check: [litex-boards `qmtech_wukong.py`](https://github.com/litex-hub/litex-boards/blob/master/litex_boards/platforms/qmtech_wukong.py).
 
 **Part:** `xc7a100tfgg676-1`  
-**Baud:** 115200 8N1 (`UART_CLKS_PER_BIT=434` at 50 MHz)
+**Baud:** 115200 8N1 (`UART_CLKS_PER_BIT=434` at **50 MHz** CPU clock — unchanged)
 
 ## Demo behaviour
 
-`board_top` preloads IMEM from `uart_hello.hex` and loops:
+`board_top` preloads IMEM from `sw/hex/uart_hello.hex` and loops:
 
-```text
-Hi
-Hi
-…
-```
+1. Toggle LED0 via MMIO (`0x20000000`)
+2. Software delay ≈ **1.0 s** half-period (≈ **2.0 s** full blink) at 50 MHz  
+   (countdown `12_500_000` × ~4 cycles/iter)
+3. Print `Hi\r\n` on UART
+4. Repeat
+
+CPU clock stays **50 MHz** so UART baud math stays `50e6/115200 ≈ 434`. No clock divider.
 
 ## Quick program + serial
 
