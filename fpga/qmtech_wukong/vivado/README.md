@@ -8,7 +8,7 @@ Portable **TCL-based** project (no checked-in `.xpr`). Recreate it on any PC wit
 | Top | `board_top` |
 | Constraints | `../wukong.xdc` (V2+V3 LED pins, Key0+Key1) |
 | CPU clk | **5 MHz** (50 MHz ÷ 10) — required for timing |
-| UART | **115200 8N1**, `UART_CLKS_PER_BIT=43` |
+| UART | **9600 8N1**, `UART_CLKS_PER_BIT=521` |
 | Demo | Embedded `uart_hello` → LED0 ~**1 s** soft blink, LED1 ~**1 Hz** heartbeat, UART `Hi` |
 | Generated XPR | `fpga/qmtech_wukong/vivado/proj/rvi20u32_wukong.xpr` |
 
@@ -30,7 +30,7 @@ Windows / Tcl Console: `cd` to the repo, then `source fpga/qmtech_wukong/vivado/
 fpga/qmtech_wukong/vivado/proj/rvi20u32_wukong.xpr
 ```
 
-Confirm top = **`board_top`**, generics `IMEM_INIT_HEX=uart_hello`, `UART_CLKS_PER_BIT=43`.
+Confirm top = **`board_top`**, generics `IMEM_INIT_HEX=uart_hello`, `UART_CLKS_PER_BIT=521`.
 After impl, **Timing Summary WNS should be ≥ 0** (was ≈ −84 ns at 50 MHz).
 
 ## 3. Generate Bitstream
@@ -48,7 +48,7 @@ fpga/qmtech_wukong/vivado/proj/rvi20u32_wukong.runs/impl_1/board_top.bit
 3. Serial:
 
 ```bash
-picocom -b 115200 -f n /dev/ttyUSB0
+picocom -b 9600 -f n /dev/ttyUSB0
 ```
 
 ### Expected

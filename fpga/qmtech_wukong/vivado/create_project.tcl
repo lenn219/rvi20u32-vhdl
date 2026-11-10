@@ -14,7 +14,7 @@
 # Then open:
 #   fpga/qmtech_wukong/vivado/proj/rvi20u32_wukong.xpr
 #
-# Part: xc7a100tfgg676-1  |  Top: board_top  |  Demo: uart_hello @ 115200 8N1
+# Part: xc7a100tfgg676-1  |  Top: board_top  |  Demo: uart_hello @ 9600 8N1
 # =============================================================================
 
 set script_dir [file normalize [file dirname [info script]]]
@@ -78,8 +78,8 @@ add_files -fileset sources_1 $hex_proj
 set_property file_type {Memory Initialization Files} [get_files $hex_proj]
 
 # Embedded boot token "uart_hello" is a constant array inside rtl/mem/imem.vhd
-# CPU runs at 5 MHz (÷10); 115200 needs CLKS_PER_BIT=43 (not 434 @ 50 MHz)
-set_property generic {IMEM_INIT_HEX=uart_hello UART_CLKS_PER_BIT=43} [get_filesets sources_1]
+# CPU runs at 5 MHz (÷10); 9600 needs CLKS_PER_BIT=521
+set_property generic {IMEM_INIT_HEX=uart_hello UART_CLKS_PER_BIT=521} [get_filesets sources_1]
 
 set_property top board_top [current_fileset]
 update_compile_order -fileset sources_1
@@ -98,7 +98,7 @@ puts ""
 puts "Next steps:"
 puts "  1. Open $xpr in Vivado  (or leave this batch open)"
 puts "  2. Flow Navigator → Generate Bitstream"
-puts "  3. Program device; open serial 115200 8N1"
+puts "  3. Program device; open serial 9600 8N1"
 puts ""
 puts "Optional batch bitstream:"
 puts "  vivado -mode batch -source fpga/qmtech_wukong/vivado/build_bitstream.tcl"

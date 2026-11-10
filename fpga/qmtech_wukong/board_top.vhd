@@ -6,12 +6,12 @@ use work.rv32_pkg.all;
 -- QMTECH Wukong (XC7A100T FGG676) board wrapper.
 -- Oscillator: 50 MHz. CPU+UART run on a divided 5 MHz clock so the combo
 -- IMEM/DMEM pipeline meets timing (50 MHz showed WNS ≈ -84 ns).
--- UART stays 115200 8N1 via UART_CLKS_PER_BIT = round(5e6/115200) = 43.
+-- UART: 9600 8N1 via UART_CLKS_PER_BIT = round(5e6/9600) = 521.
 entity board_top is
   generic (
     IMEM_INIT_HEX     : string   := "uart_hello";
-    -- CPU clock is 5 MHz (50 MHz / 10). Do not use 434 here.
-    UART_CLKS_PER_BIT : positive := 43;  -- 5e6 / 115200 ≈ 43.4
+    -- CPU clock is 5 MHz (50 MHz / 10). Do not use 434 (that was 115200@50MHz).
+    UART_CLKS_PER_BIT : positive := 521;  -- 5e6 / 9600 ≈ 520.8
     CLK_DIV_HALF      : positive := 5    -- toggle every 5 cycles of 50 MHz → 5 MHz
   );
   port (
