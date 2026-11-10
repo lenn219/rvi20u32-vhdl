@@ -14,7 +14,7 @@
 # Then open:
 #   fpga/qmtech_wukong/vivado/proj/rvi20u32_wukong.xpr
 #
-# Part: xc7a100tfgg676-1  |  Top: board_top  |  Demo: uart_hello @ 9600 8N1
+# Part: xc7a100tfgg676-1  |  Top: board_top  |  Demo: uart_hello @ 9600 8N1 (UART on 50 MHz, CPU on 5 MHz)
 # =============================================================================
 
 set script_dir [file normalize [file dirname [info script]]]
@@ -78,8 +78,8 @@ add_files -fileset sources_1 $hex_proj
 set_property file_type {Memory Initialization Files} [get_files $hex_proj]
 
 # Embedded boot token "uart_hello" is a constant array inside rtl/mem/imem.vhd
-# CPU runs at 5 MHz (÷10); 9600 needs CLKS_PER_BIT=521
-set_property generic {IMEM_INIT_HEX=uart_hello UART_CLKS_PER_BIT=521} [get_filesets sources_1]
+# UART on 50 MHz crystal @ 9600 → CLKS_PER_BIT=5208 (CPU stays on 5 MHz)
+set_property generic {IMEM_INIT_HEX=uart_hello UART_CLKS_PER_BIT=5208} [get_filesets sources_1]
 
 set_property top board_top [current_fileset]
 update_compile_order -fileset sources_1
