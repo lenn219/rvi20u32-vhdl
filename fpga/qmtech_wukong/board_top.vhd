@@ -4,20 +4,26 @@ use ieee.numeric_std.all;
 use work.rv32_pkg.all;
 
 -- QMTECH Wukong (XC7A100T FGG676) board wrapper.
--- Clock: 50 MHz oscillator. UART: onboard USB-UART bridge.
--- Default pinout matches Wukong V2 (see wukong.xdc for V3 LED notes).
+-- Clock: 50 MHz oscillator. UART: onboard USB-UART (CP2102 V2 / CH340N V3).
+-- Drives BOTH V2 and V3 user-LED pin pairs so either revision blinks.
 entity board_top is
   generic (
-    -- Path relative to Vivado run directory / GHDL cwd; set in synth TCL.
-    IMEM_INIT_HEX     : string   := "uart_hello.hex";
+    -- "uart_hello" = embedded boot image (recommended for Vivado).
+    -- Or a filesystem path to a .hex for sim / custom images.
+    IMEM_INIT_HEX     : string   := "uart_hello";
     UART_CLKS_PER_BIT : positive := 434  -- 50e6 / 115200
   );
   port (
     clk_50mhz : in  std_logic;
-    rst_n     : in  std_logic;                     -- Key1, active-low
-    led       : out std_logic_vector(1 downto 0);  -- active-low
-    uart_tx   : out std_logic;                     -- FPGA → USB-UART
-    uart_rx   : in  std_logic                      -- USB-UART → FPGA (unused)
+    -- Active-low keys (either holds CPU in reset). Official demos use Key0=H7;
+    -- LiteX uses Key1=M6. Wire both.
+    key0_n    : in  std_logic;                     -- H7
+    key1_n    : in  std_logic;                     -- M6
+    -- User LEDs are active-low on the schematic (FPGA sinks current).
+    led_v2    : out std_logic_vector(1 downto 0);  -- V16 / V17 (board rev V2)
+    led_v3    : out std_logic_vector(1 downto 0);  -- G21 / G20 (board rev V3)
+    uart_tx   : out std_logic;                     -- FPGA → USB-UART RXD (E3)
+    uart_rx   : in  std_logic                      -- USB-UART TXD → FPGA (F3)
   );
 end entity;
 
@@ -29,8 +35,17 @@ architecture rtl of board_top is
   signal halt_ill  : std_logic;
   signal leds_cpu  : std_logic_vector(7 downto 0);
   signal tx        : std_logic;
+
+  -- Free-running ~1 Hz heartbeat proves the 50 MHz clock is alive even if
+  -- the CPU image failed to load.
+  signal hb_cnt    : unsigned(25 downto 0) := (others => '0');
+  signal hb_q      : std_logic := '0';
+
+  signal led0_n    : std_logic;
+  signal led1_n    : std_logic;
 begin
-  rst_async <= not rst_n;
+  -- Press either Key0 or Key1 → reset
+  rst_async <= (not key0_n) or (not key1_n);
 
   process (clk_50mhz, rst_async)
   begin
@@ -40,6 +55,18 @@ begin
     elsif rising_edge(clk_50mhz) then
       rst_meta <= '0';
       rst_sync <= rst_meta;
+    end if;
+  end process;
+
+  process (clk_50mhz)
+  begin
+    if rising_edge(clk_50mhz) then
+      if hb_cnt = to_unsigned(25_000_000 - 1, hb_cnt'length) then
+        hb_cnt <= (others => '0');
+        hb_q   <= not hb_q;
+      else
+        hb_cnt <= hb_cnt + 1;
+      end if;
     end if;
   end process;
 
@@ -64,10 +91,15 @@ begin
 
   uart_tx <= tx;
 
-  -- Active-low board LEDs driven by CPU MMIO @ 0x20000000 (soft blink in uart_hello.hex).
-  -- Invert: software writes 1 = LED on.
-  led(0) <= not leds_cpu(0);
-  led(1) <= not leds_cpu(1);
+  -- Active-low LEDs: drive 0 to light.
+  -- LED0 = CPU MMIO soft blink (uart_hello). LED1 = HW heartbeat (~1 Hz).
+  led0_n <= not leds_cpu(0);
+  led1_n <= not hb_q;
 
-  -- uart_rx reserved for future RX MMIO; pin is constrained in XDC
+  led_v2(0) <= led0_n;
+  led_v2(1) <= led1_n;
+  led_v3(0) <= led0_n;
+  led_v3(1) <= led1_n;
+
+  -- uart_rx reserved for future RX MMIO; constrained so the pin is defined.
 end architecture;

@@ -3,11 +3,14 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 use work.rv32_pkg.all;
+use work.imem_boot_pkg.all;
 
 -- Word-addressed instruction memory.
 -- Combinational read (classic 5-stage IF); sync write for TB/program load.
--- Optional INIT_HEX (one 8-hex-digit word per line, little program image from addr 0)
--- for FPGA bitstream preload. Use "none" to skip.
+-- INIT_HEX:
+--   "none"        — zeros
+--   "uart_hello"  — embedded boot image (imem_boot_pkg; reliable for Vivado)
+--   <path>        — textio load of 8-hex-digit words (sim / optional FPGA)
 entity imem is
   generic (
     DEPTH_WORDS : positive := IMEM_SIZE / 4;
@@ -38,6 +41,17 @@ architecture rtl of imem is
     if INIT_HEX = "none" or INIT_HEX'length = 0 then
       return mem;
     end if;
+
+    -- Embedded UART bring-up image (no filesystem dependency in synth).
+    if INIT_HEX = "uart_hello" then
+      for i in 0 to IMEM_BOOT_LEN - 1 loop
+        if i < DEPTH_WORDS then
+          mem(i) := IMEM_BOOT_IMAGE(i);
+        end if;
+      end loop;
+      return mem;
+    end if;
+
     file_open(status, f, INIT_HEX, read_mode);
     if status /= open_ok then
       report "imem: could not open INIT_HEX=" & INIT_HEX severity warning;

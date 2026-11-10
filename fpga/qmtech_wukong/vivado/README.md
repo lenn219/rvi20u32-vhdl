@@ -6,107 +6,68 @@ Portable **TCL-based** project (no checked-in `.xpr`). Recreate it on any PC wit
 |------|--------|
 | Part | `xc7a100tfgg676-1` |
 | Top | `board_top` |
-| Constraints | `../wukong.xdc` |
-| Demo | `uart_hello.hex` → LED blink ~**1 s** half / ~**2 s** full + `Hi` @ **115200 8N1** |
+| Constraints | `../wukong.xdc` (V2+V3 LED pins, Key0+Key1) |
+| Demo | Embedded `uart_hello` → LED0 ~**1 s** soft blink, LED1 ~**1 Hz** heartbeat, UART `Hi` @ **115200 8N1** |
 | Generated XPR | `fpga/qmtech_wukong/vivado/proj/rvi20u32_wukong.xpr` |
 
 ## 1. Create the project
 
 Open a terminal in the **repository root** (`rvi20u32-vhdl`).
 
-### Linux / macOS
-
 ```bash
 vivado -mode batch -source fpga/qmtech_wukong/vivado/create_project.tcl
 ```
 
-### Windows (Vivado Tcl Shell or `cmd`)
-
-```bat
-cd C:\path\to\rvi20u32-vhdl
-vivado -mode batch -source fpga/qmtech_wukong/vivado/create_project.tcl
-```
-
-Or in the Vivado **Tcl Console** after starting the GUI:
-
-```tcl
-cd {C:/path/to/rvi20u32-vhdl}
-source fpga/qmtech_wukong/vivado/create_project.tcl
-```
+Windows / Tcl Console: `cd` to the repo, then `source fpga/qmtech_wukong/vivado/create_project.tcl`.
 
 ## 2. Open in Vivado GUI
 
-**File → Open Project** → select:
+**File → Open Project** →
 
 ```text
 fpga/qmtech_wukong/vivado/proj/rvi20u32_wukong.xpr
 ```
 
-Confirm:
-
-- Sources → top = **`board_top`**
-- Constraints → **`wukong.xdc`**
-- Generics include absolute `IMEM_INIT_HEX=.../uart_hello.hex` and `UART_CLKS_PER_BIT=434`
+Confirm top = **`board_top`**, generics `IMEM_INIT_HEX=uart_hello`, `UART_CLKS_PER_BIT=434`.
 
 ## 3. Generate Bitstream
 
-In Flow Navigator:
-
-1. **Run Synthesis**
-2. **Run Implementation**
-3. **Generate Bitstream**
-
-Batch alternative (from repo root):
-
-```bash
-vivado -mode batch -source fpga/qmtech_wukong/vivado/build_bitstream.tcl
-```
-
-Bitstream path:
+Flow Navigator → **Generate Bitstream** (or batch `build_bitstream.tcl`).
 
 ```text
 fpga/qmtech_wukong/vivado/proj/rvi20u32_wukong.runs/impl_1/board_top.bit
 ```
 
-## 4. Program the FPGA
+## 4. Program + serial
 
-1. Plug the Wukong **JTAG** USB cable.
-2. Vivado → **Open Hardware Manager** → **Open Target** → **Auto Connect**.
-3. **Program Device** → select `board_top.bit`.
-
-## 5. Open serial (UART demo)
-
-1. Plug the board **USB-UART** (may be a second USB connector).
-2. Port settings: **115200**, **8N1**, no flow control.
-3. Examples:
+1. **JTAG** cable → Hardware Manager → Program `board_top.bit` → silk **D1** ON.
+2. **Mini-USB** (onboard UART) → typically the only **`/dev/ttyUSB0`** (CP2102 or CH340). JTAG is not this tty.
+3. Serial:
 
 ```bash
-# Linux
-picocom -b 115200 /dev/ttyUSB0
-# or: screen /dev/ttyUSB0 115200
-
-# Windows: use PuTTY / Tera Term on COMx @ 115200
+picocom -b 115200 -f n /dev/ttyUSB0
 ```
 
-Press/release **Key1** (reset) if needed. You should see:
+### Expected
 
-- **LED0** blinking slowly (~1 s on / ~1 s off)
-- Serial repeating `Hi` once per blink half-period at **115200 8N1**
+| LED | Behaviour |
+|-----|-----------|
+| D1 | ON (DONE) |
+| D4 | ON (3.3 V) |
+| D5 (LED0) | ~1 s on / ~1 s off (CPU) |
+| D6 (LED1) | ~1 Hz heartbeat (HW) |
+| UART | `Hi` + CRLF once per LED0 half-period |
 
-CPU clock remains 50 MHz; UART divisor is still 434 (no baud change).
+Press **Key0** or **Key1** to reset. CPU clock stays 50 MHz; baud divisor 434 unchanged.
 
-## Files in this folder
+## Files
 
 | File | Role |
 |------|------|
 | `create_project.tcl` | Create/recreate the `.xpr` |
 | `build_bitstream.tcl` | Optional batch synth→bit |
 | `files.tcl` | Explicit RTL / XDC list |
-| `uart_hello.hex` | Local copy of the demo image |
+| `uart_hello.hex` | Reference copy of demo image |
 | `proj/` | Generated project (gitignored) |
 
-## Notes
-
-- Re-run `create_project.tcl` after pulling RTL changes (it uses `-force`).
-- V3 boards: swap LED pins in `../wukong.xdc` (see comments there).
-- This flow does **not** require checking in binary `.xpr` files.
+After pulling RTL changes, re-run `create_project.tcl` (`-force`).

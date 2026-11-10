@@ -65,7 +65,7 @@ foreach rel $::wukong_xdc_files {
   add_files -fileset constrs_1 $f
 }
 
-# ----- UART demo hex (absolute path → reliable IMEM preload in synth) -----
+# ----- UART demo hex (reference copy only; IMEM uses embedded imem_boot_pkg) -----
 set hex_src [file join $repo_root $::wukong_hex_relpath]
 if {![file exists $hex_src]} {
   error "Missing hex: $hex_src"
@@ -74,13 +74,11 @@ set hex_local [file join $script_dir uart_hello.hex]
 file copy -force $hex_src $hex_local
 set hex_proj [file join $proj_dir uart_hello.hex]
 file copy -force $hex_src $hex_proj
-# Also keep a design-file copy so it shows up in the Sources pane
 add_files -fileset sources_1 $hex_proj
 set_property file_type {Memory Initialization Files} [get_files $hex_proj]
 
-set hex_abs [file normalize $hex_proj]
-# Vivado string generics: use braces; forward slashes work on Windows too
-set_property generic "IMEM_INIT_HEX={$hex_abs} UART_CLKS_PER_BIT=434" [get_filesets sources_1]
+# Embedded boot token "uart_hello" → rtl/mem/imem_boot_pkg.vhd (no textio at synth)
+set_property generic {IMEM_INIT_HEX=uart_hello UART_CLKS_PER_BIT=434} [get_filesets sources_1]
 
 set_property top board_top [current_fileset]
 update_compile_order -fileset sources_1
@@ -94,7 +92,7 @@ puts ""
 puts "Project created successfully."
 puts "  XPR : $xpr"
 puts "  TOP : board_top"
-puts "  HEX : $hex_abs"
+puts "  IMEM: embedded uart_hello (imem_boot_pkg) ; ref copy $hex_proj"
 puts ""
 puts "Next steps:"
 puts "  1. Open $xpr in Vivado  (or leave this batch open)"
