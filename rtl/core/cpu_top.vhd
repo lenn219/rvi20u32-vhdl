@@ -6,9 +6,10 @@ use work.rv32_pkg.all;
 -- 5-stage RV32IM + Zicsr/traps core + on-chip IMEM/DMEM + MMIO.
 entity cpu_top is
   generic (
-    IMEM_DEPTH_WORDS : positive := IMEM_SIZE / 4;
-    DMEM_DEPTH_BYTES : positive := DMEM_SIZE;
-    UART_CLKS_PER_BIT : positive := 434  -- 50 MHz / 115200
+    IMEM_DEPTH_WORDS  : positive := IMEM_SIZE / 4;
+    DMEM_DEPTH_BYTES  : positive := DMEM_SIZE;
+    UART_CLKS_PER_BIT : positive := 434;  -- 50 MHz / 115200
+    IMEM_INIT_HEX     : string := "none"
   );
   port (
     clk        : in  std_logic;
@@ -193,7 +194,7 @@ begin
   imem_addr_mux <= imem_addr when imem_we = '1' else pc_q;
 
   u_imem : entity work.imem
-    generic map (DEPTH_WORDS => IMEM_DEPTH_WORDS)
+    generic map (DEPTH_WORDS => IMEM_DEPTH_WORDS, INIT_HEX => IMEM_INIT_HEX)
     port map (
       clk => clk, addr => imem_addr_mux, rdata => instr_if,
       we => imem_we, wdata => imem_wdata
