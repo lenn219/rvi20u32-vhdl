@@ -14,7 +14,7 @@
 # Then open:
 #   fpga/qmtech_wukong/vivado/proj/rvi20u32_wukong.xpr
 #
-# Part: xc7a100tfgg676-1  |  Top: board_top  |  Demo: uart_hello @ 9600 8N1 (UART on 50 MHz, CPU on 5 MHz)
+# Part: xc7a100tfgg676-1  |  Top: board_top  |  Demo: uart_hello @ 9600 8N1 (single 50 MHz clock)
 # =============================================================================
 
 set script_dir [file normalize [file dirname [info script]]]

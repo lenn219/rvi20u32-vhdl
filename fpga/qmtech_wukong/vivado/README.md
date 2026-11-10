@@ -7,7 +7,7 @@ Portable **TCL-based** project (no checked-in `.xpr`). Recreate it on any PC wit
 | Part | `xc7a100tfgg676-1` |
 | Top | `board_top` |
 | Constraints | `../wukong.xdc` (V2+V3 LED pins, Key0+Key1) |
-| CPU clk | **5 MHz** (50 MHz ÷ 10) — required for timing |
+| Clock | **50 MHz** single domain |
 | UART | **9600 8N1**, `UART_CLKS_PER_BIT=5208` |
 | Demo | Embedded `uart_hello` → LED0 ~**1 s** soft blink, LED1 ~**1 Hz** heartbeat, UART `Hi` |
 | Generated XPR | `fpga/qmtech_wukong/vivado/proj/rvi20u32_wukong.xpr` |
@@ -31,7 +31,7 @@ fpga/qmtech_wukong/vivado/proj/rvi20u32_wukong.xpr
 ```
 
 Confirm top = **`board_top`**, generics `IMEM_INIT_HEX=uart_hello`, `UART_CLKS_PER_BIT=5208`.
-After impl, **Timing Summary WNS should be ≥ 0** (was ≈ −84 ns at 50 MHz).
+Timing may show WNS violations (combo IMEM/DMEM); UART baud is still 9600 from 50 MHz.
 
 ## 3. Generate Bitstream
 
@@ -61,7 +61,7 @@ picocom -b 9600 -f n /dev/ttyUSB0
 | D6 (LED1) | ~1 Hz heartbeat (HW) |
 | UART | `Hi` + CRLF once per LED0 half-period |
 
-Press **Key0** or **Key1** to reset. CPU clock stays 50 MHz; baud divisor 434 unchanged.
+Press **Key0** or **Key1** to reset. Clock is 50 MHz; UART uses `CLKS_PER_BIT=5208` → 9600.
 
 ## Files
 
