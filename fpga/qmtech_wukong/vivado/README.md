@@ -7,7 +7,7 @@ Portable **TCL-based** project (no checked-in `.xpr`). Recreate it on any PC wit
 | Part | `xc7a100tfgg676-1` |
 | Top | `board_top` |
 | Constraints | `../wukong.xdc` |
-| Demo | `uart_hello.hex` → loops `Hi` @ **115200 8N1** |
+| Demo | `uart_hello.hex` → LED blink ~**1 s** half / ~**2 s** full + `Hi` @ **115200 8N1** |
 | Generated XPR | `fpga/qmtech_wukong/vivado/proj/rvi20u32_wukong.xpr` |
 
 ## 1. Create the project
@@ -88,15 +88,12 @@ picocom -b 115200 /dev/ttyUSB0
 # Windows: use PuTTY / Tera Term on COMx @ 115200
 ```
 
-Press/release **Key1** (reset) if needed. You should see repeating:
+Press/release **Key1** (reset) if needed. You should see:
 
-```text
-Hi
-Hi
-…
-```
+- **LED0** blinking slowly (~1 s on / ~1 s off)
+- Serial repeating `Hi` once per blink half-period at **115200 8N1**
 
-LED0 (active-low) lights while the CPU is out of reset; LED1 lights only if halted (should stay off for this looping demo).
+CPU clock remains 50 MHz; UART divisor is still 434 (no baud change).
 
 ## Files in this folder
 

@@ -7,7 +7,7 @@ context vunit_lib.vunit_context;
 
 use work.rv32_pkg.all;
 
--- FPGA image smoke: IMEM preloaded from sw/hex/uart_hello.hex, decode "Hi\r\n".
+-- FPGA-image smoke using the *fast* hex (short delay). Board uses uart_hello.hex (slow).
 entity tb_uart_hello_rom is
   generic (runner_cfg : string);
 end entity;
@@ -29,7 +29,7 @@ begin
       IMEM_DEPTH_WORDS  => 256,
       DMEM_DEPTH_BYTES  => 256,
       UART_CLKS_PER_BIT => CLKS,
-      IMEM_INIT_HEX     => "sw/hex/uart_hello.hex"
+      IMEM_INIT_HEX     => "sw/hex/uart_hello_fast.hex"
     )
     port map (
       clk => clk, rst => rst,
@@ -70,12 +70,15 @@ begin
     while test_suite loop
       if run("rom_prints_hi_crlf") then
         rst <= '1'; tick; tick; rst <= '0';
-        for n in 0 to 3 loop
+        -- After delay: LED toggled 0→1, then UART "Hi\r\n"
+        recv_byte(got);
+        check_equal(got, expect(0));
+        check_equal(leds(0), '1');  -- still in first half before next toggle
+        for n in 1 to 3 loop
           recv_byte(got);
           report "ROM UART byte=" & to_hstring(got);
           check_equal(got, expect(n));
         end loop;
-        -- Looping demo must not halt
         for i in 1 to 200 loop tick; end loop;
         check_equal(halted, '0');
       end if;
