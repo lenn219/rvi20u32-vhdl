@@ -22,13 +22,15 @@ venv/
 .idea/
 .vscode/
 
-# Vivado
+# Vivado (generated projects — recreate via TCL)
 fpga/**/*.cache/
 fpga/**/*.hw/
 fpga/**/*.runs/
 fpga/**/*.sim/
 fpga/**/*.ip_user_files/
 fpga/**/*.xpr
+fpga/qmtech_wukong/vivado/proj/
+build/
 *.jou
 *.log
 *.str
