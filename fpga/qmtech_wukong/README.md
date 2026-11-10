@@ -63,7 +63,7 @@ ls -l /dev/ttyUSB* /dev/serial/by-id/ 2>/dev/null
 
 ## Demo behaviour
 
-IMEM is preloaded from the **embedded** `uart_hello` image (`rtl/pkg/imem_boot_pkg.vhd`, generated from `sw/hex/uart_hello.hex`):
+IMEM is preloaded from the **embedded** `uart_hello` image (constant array inside `rtl/mem/imem.vhd`, from `sw/hex/uart_hello.hex`):
 
 1. Toggle LED0 via MMIO (`0x20000000`)
 2. Software delay ≈ **1.0 s** half-period at 50 MHz
@@ -97,4 +97,4 @@ Expect repeating `Hi` once per LED0 half-period. Press **Key0** or **Key1** to r
 | `wukong.xdc` | Constraints (V2+V3 LEDs, both keys) |
 | `vivado/` | Openable Vivado project TCL |
 | `../../sw/hex/uart_hello.hex` | Demo source image |
-| `../../rtl/pkg/imem_boot_pkg.vhd` | Embedded IMEM for synth |
+| `../../rtl/mem/imem.vhd` | Contains embedded `uart_hello` boot image |
