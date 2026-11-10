@@ -26,7 +26,26 @@ begin
 
   process (op, a, b, shamt)
     variable result : word_t;
+    variable prod_ss : signed(63 downto 0);
+    variable prod_uu : unsigned(63 downto 0);
+    variable prod_su : signed(65 downto 0);
+    variable a_s33 : signed(32 downto 0);
+    variable b_u33 : signed(32 downto 0);
+    variable a_s : signed(31 downto 0);
+    variable b_s : signed(31 downto 0);
+    variable a_u : unsigned(31 downto 0);
+    variable b_u : unsigned(31 downto 0);
+    variable q_s : signed(31 downto 0);
+    variable r_s : signed(31 downto 0);
+    variable q_u : unsigned(31 downto 0);
+    variable r_u : unsigned(31 downto 0);
   begin
+    a_s := signed(a);
+    b_s := signed(b);
+    a_u := unsigned(a);
+    b_u := unsigned(b);
+    result := (others => '0');
+
     case op is
       when ALU_ADD =>
         result := std_logic_vector(unsigned(a) + unsigned(b));
@@ -62,6 +81,54 @@ begin
         result := a;
       when ALU_COPY_B =>
         result := b;
+
+      when ALU_MUL =>
+        prod_ss := a_s * b_s;
+        result := std_logic_vector(prod_ss(31 downto 0));
+      when ALU_MULH =>
+        prod_ss := a_s * b_s;
+        result := std_logic_vector(prod_ss(63 downto 32));
+      when ALU_MULHU =>
+        prod_uu := a_u * b_u;
+        result := std_logic_vector(prod_uu(63 downto 32));
+      when ALU_MULHSU =>
+        a_s33 := resize(a_s, 33);
+        b_u33 := signed(std_logic_vector'('0' & b));
+        prod_su := a_s33 * b_u33;
+        result := std_logic_vector(prod_su(63 downto 32));
+
+      when ALU_DIV =>
+        if b_u = 0 then
+          result := (others => '1'); -- -1
+        elsif a = x"80000000" and b = x"FFFFFFFF" then
+          result := x"80000000"; -- overflow
+        else
+          q_s := a_s / b_s;
+          result := std_logic_vector(q_s);
+        end if;
+      when ALU_DIVU =>
+        if b_u = 0 then
+          result := (others => '1');
+        else
+          q_u := a_u / b_u;
+          result := std_logic_vector(q_u);
+        end if;
+      when ALU_REM =>
+        if b_u = 0 then
+          result := a;
+        elsif a = x"80000000" and b = x"FFFFFFFF" then
+          result := (others => '0');
+        else
+          r_s := a_s rem b_s;
+          result := std_logic_vector(r_s);
+        end if;
+      when ALU_REMU =>
+        if b_u = 0 then
+          result := a;
+        else
+          r_u := a_u rem b_u;
+          result := std_logic_vector(r_u);
+        end if;
     end case;
     y <= result;
   end process;

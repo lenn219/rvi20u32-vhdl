@@ -62,6 +62,19 @@ begin
       elsif run("copy") then
         op <= ALU_COPY_B; a <= to_word(1); b <= to_word(99); wait for 1 ns;
         check_equal(signed(y), 99);
+      elsif run("mul_div") then
+        op <= ALU_MUL; a <= to_word(6); b <= to_word(7); wait for 1 ns;
+        check_equal(signed(y), 42);
+        op <= ALU_MULH; a <= x"40000000"; b <= x"00000002"; wait for 1 ns;
+        check_equal(y, std_logic_vector'(x"00000000"));
+        op <= ALU_DIV; a <= to_word(42); b <= to_word(7); wait for 1 ns;
+        check_equal(signed(y), 6);
+        op <= ALU_DIV; a <= to_word(1); b <= to_word(0); wait for 1 ns;
+        check_equal(y, std_logic_vector'(x"FFFFFFFF"));
+        op <= ALU_REM; a <= to_word(43); b <= to_word(7); wait for 1 ns;
+        check_equal(signed(y), 1);
+        op <= ALU_DIVU; a <= x"FFFFFFFE"; b <= x"00000002"; wait for 1 ns;
+        check_equal(y, std_logic_vector'(x"7FFFFFFF"));
       end if;
     end loop;
 

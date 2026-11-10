@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Run ELF on Spike; dump signature via plusargs (RISCOF-style).
+# Run ELF on Spike; dump begin_signature..end_signature via plusargs.
 set -euo pipefail
 
 ELF="${1:?elf}"
 OUT_SIG="${2:?out.signature}"
 SPIKE="${SPIKE:-$HOME/.local/bin/spike}"
+ISA="${SPIKE_ISA:-rv32izicsr}"
 
-"$SPIKE" --isa=rv32i -m0x80000000:0x100000 \
-  "$ELF" \
+"$SPIKE" --isa="$ISA" -m0x80000000:0x100000 \
   +signature="$OUT_SIG" \
   +signature-granularity=4 \
-  2>"${OUT_SIG}.spike.log"
+  "$ELF"
 
 echo "Wrote $OUT_SIG ($(wc -l < "$OUT_SIG") lines)"

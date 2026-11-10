@@ -25,7 +25,9 @@ package rv32_pkg is
     ALU_AND, ALU_OR, ALU_XOR,
     ALU_SLL, ALU_SRL, ALU_SRA,
     ALU_SLT, ALU_SLTU,
-    ALU_COPY_A, ALU_COPY_B
+    ALU_COPY_A, ALU_COPY_B,
+    ALU_MUL, ALU_MULH, ALU_MULHSU, ALU_MULHU,
+    ALU_DIV, ALU_DIVU, ALU_REM, ALU_REMU
   );
 
   type branch_op_t is (
@@ -33,6 +35,11 @@ package rv32_pkg is
   );
 
   type mem_size_t is (MEM_B, MEM_H, MEM_W);
+
+  -- Zicsr: CSRRW/CSRRS/CSRRC + immediate forms
+  type csr_op_t is (
+    CSR_NONE, CSR_RW, CSR_RS, CSR_RC, CSR_RWI, CSR_RSI, CSR_RCI
+  );
 
   type ctrl_t is record
     reg_write    : std_logic;
@@ -52,6 +59,10 @@ package rv32_pkg is
     wb_pc4       : std_logic;
     use_rs1      : std_logic;
     use_rs2      : std_logic;
+    csr_op       : csr_op_t;
+    is_mret      : std_logic;
+    is_ecall     : std_logic;
+    is_ebreak    : std_logic;
   end record;
 
   constant CTRL_NOP : ctrl_t := (
@@ -71,8 +82,32 @@ package rv32_pkg is
     illegal      => '0',
     wb_pc4       => '0',
     use_rs1      => '0',
-    use_rs2      => '0'
+    use_rs2      => '0',
+    csr_op       => CSR_NONE,
+    is_mret      => '0',
+    is_ecall     => '0',
+    is_ebreak    => '0'
   );
+
+  -- Machine CSR addresses (subset)
+  constant CSR_MSTATUS  : std_logic_vector(11 downto 0) := x"300";
+  constant CSR_MISA     : std_logic_vector(11 downto 0) := x"301";
+  constant CSR_MIE      : std_logic_vector(11 downto 0) := x"304";
+  constant CSR_MTVEC    : std_logic_vector(11 downto 0) := x"305";
+  constant CSR_MSCRATCH : std_logic_vector(11 downto 0) := x"340";
+  constant CSR_MEPC     : std_logic_vector(11 downto 0) := x"341";
+  constant CSR_MCAUSE   : std_logic_vector(11 downto 0) := x"342";
+  constant CSR_MTVAL    : std_logic_vector(11 downto 0) := x"343";
+  constant CSR_MIP      : std_logic_vector(11 downto 0) := x"344";
+  constant CSR_MHARTID  : std_logic_vector(11 downto 0) := x"F14";
+
+  -- Exception causes
+  constant CAUSE_MISALIGNED_FETCH : word_t := x"00000000";
+  constant CAUSE_ILLEGAL_INSTR    : word_t := x"00000002";
+  constant CAUSE_BREAKPOINT       : word_t := x"00000003";
+  constant CAUSE_MISALIGNED_LOAD  : word_t := x"00000004";
+  constant CAUSE_MISALIGNED_STORE : word_t := x"00000006";
+  constant CAUSE_ECALL_M          : word_t := x"0000000B";
 
   constant IMEM_BASE : unsigned(31 downto 0) := x"00000000";
   constant IMEM_SIZE : integer := 8 * 1024;

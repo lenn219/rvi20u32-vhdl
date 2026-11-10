@@ -3,9 +3,9 @@
 Classic **5-stage pipelined RV32I** CPU in modular VHDL.
 
 - **ISA:** pure RV32I (no M/C/Zicsr). `FENCE` / `FENCE.I` = NOP; `ECALL`/`EBREAK` = halt.
-- **Memory:** on-chip IMEM + DMEM (async read / sync write) + MMIO (LEDs, UART TX stub).
-- **Target:** Xilinx Artix-7 **XC7A200T**, CPU clock **50 MHz**; board XDC deferred.
-- **Sim:** GHDL + VUnit. **Synth:** Vivado (wrapper in `fpga/a7_200t/`).
+- **Memory:** on-chip IMEM + DMEM (async read / sync write) + MMIO (LEDs, UART TX 8N1).
+- **Target:** QMTECH **Wukong XC7A100T** (50 MHz, onboard USB-UART) + generic Artix-7 wrapper.
+- **Sim:** GHDL + VUnit. **Synth:** Vivado (`fpga/qmtech_wukong/`).
 
 ## Status
 
@@ -29,8 +29,12 @@ rtl/mem/      imem, dmem
 rtl/mmio/     leds, uart_tx
 tb/           VUnit tests (alu, regfile, dmem, cpu_smoke)
 sw/hex/       committed smoke.hex
-fpga/a7_200t/ fpga_top (no board XDC yet)
+fpga/qmtech_wukong/  Wukong XC7A100T XDC + board_top + Vivado TCL
+fpga/a7_200t/        generic fpga_top (no pins)
 ```
+
+FPGA bring-up (Wukong): [`fpga/qmtech_wukong/README.md`](fpga/qmtech_wukong/README.md) · [`docs/fpga/qmtech-wukong.md`](docs/fpga/qmtech-wukong.md)
+
 
 ## Memory map (v1)
 
