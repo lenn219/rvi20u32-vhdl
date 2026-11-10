@@ -53,7 +53,9 @@ begin
   uut : entity work.cpu_top
     generic map (IMEM_DEPTH_WORDS => 256, DMEM_DEPTH_BYTES => 256)
     port map (
-      clk => clk, rst => rst,
+      clk => clk,
+      clk_uart   => clk,
+      rst => rst,
       halted => halted, halt_ill => halt_ill,
       leds => leds, uart_tx => uart_tx,
       imem_we => imem_we, imem_addr => imem_addr, imem_wdata => imem_wdata

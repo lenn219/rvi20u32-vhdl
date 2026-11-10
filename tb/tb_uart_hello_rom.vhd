@@ -32,7 +32,9 @@ begin
       IMEM_INIT_HEX     => "sw/hex/uart_hello_fast.hex"
     )
     port map (
-      clk => clk, rst => rst,
+      clk => clk,
+      clk_uart   => clk,
+      rst => rst,
       halted => halted, halt_ill => halt_ill,
       leds => leds, uart_tx => uart_tx,
       imem_we => '0', imem_addr => (others => '0'), imem_wdata => (others => '0')

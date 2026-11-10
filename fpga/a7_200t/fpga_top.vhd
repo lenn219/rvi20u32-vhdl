@@ -37,6 +37,7 @@ begin
   u_cpu : entity work.cpu_top
     port map (
       clk        => clk,
+      clk_uart   => clk,
       rst        => rst_sync,
       halted     => halted,
       halt_ill   => halt_ill,
