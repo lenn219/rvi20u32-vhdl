@@ -20,7 +20,6 @@ files=(
   "$ROOT/rtl/mem/dmem.vhd"
   "$ROOT/rtl/mmio/mmio_leds.vhd"
   "$ROOT/rtl/mmio/mmio_uart_tx.vhd"
-  "$ROOT/rtl/mmio/mmio_uart_tx_cdc.vhd"
   "$ROOT/rtl/core/cpu_top.vhd"
   "$ROOT/fpga/qmtech_wukong/board_top.vhd"
 )

@@ -8,15 +8,11 @@ entity cpu_top is
   generic (
     IMEM_DEPTH_WORDS  : positive := IMEM_SIZE / 4;
     DMEM_DEPTH_BYTES  : positive := DMEM_SIZE;
-    -- Baud-domain clocks-per-bit (use board crystal rate, not the CPU divider).
-    UART_CLKS_PER_BIT : positive := 5208;  -- 50e6 / 9600
+    UART_CLKS_PER_BIT : positive := 5208;  -- 50e6 / 9600 (same clock as clk)
     IMEM_INIT_HEX     : string := "none"
   );
   port (
     clk        : in  std_logic;
-    -- UART shifter clock; tie to clk in sim. On Wukong FPGA use the 50 MHz
-    -- crystal so 9600 baud stays correct regardless of CPU clock division.
-    clk_uart   : in  std_logic;
     rst        : in  std_logic;
     halted     : out std_logic;
     halt_ill   : out std_logic;
@@ -472,12 +468,11 @@ begin
       rdata => led_rdata, leds => leds
     );
 
-  u_uart : entity work.mmio_uart_tx_cdc
+  u_uart : entity work.mmio_uart_tx
     generic map (CLKS_PER_BIT => UART_CLKS_PER_BIT)
     port map (
-      clk_cpu  => clk,
-      clk_baud => clk_uart,
-      rst_cpu  => rst,
+      clk      => clk,
+      rst      => rst,
       we_data  => uart_we,
       wdata    => d_wdata,
       rdata_st => uartst_rdata,

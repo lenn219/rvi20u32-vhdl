@@ -14,7 +14,6 @@ set ::wukong_vhdl_sources [list \
   rtl/mem/dmem.vhd \
   rtl/mmio/mmio_leds.vhd \
   rtl/mmio/mmio_uart_tx.vhd \
-  rtl/mmio/mmio_uart_tx_cdc.vhd \
   rtl/core/cpu_top.vhd \
   fpga/qmtech_wukong/board_top.vhd \
 ]
