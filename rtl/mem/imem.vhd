@@ -3,13 +3,12 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 use work.rv32_pkg.all;
-use work.imem_boot_pkg.all;
 
 -- Word-addressed instruction memory.
 -- Combinational read (classic 5-stage IF); sync write for TB/program load.
 -- INIT_HEX:
 --   "none"        — zeros
---   "uart_hello"  — embedded boot image (imem_boot_pkg; reliable for Vivado)
+--   "uart_hello"  — embedded boot image below (no extra package; Vivado-safe)
 --   <path>        — textio load of 8-hex-digit words (sim / optional FPGA)
 entity imem is
   generic (
@@ -28,6 +27,47 @@ end entity;
 architecture rtl of imem is
   type ram_t is array (0 to DEPTH_WORDS - 1) of word_t;
 
+  -- Embedded uart_hello.hex (regen: python3 sw/scripts/gen_imem_boot_pkg.py)
+  -- Kept inside this architecture so synth needs no separate work.imem_boot_pkg.
+  constant IMEM_BOOT_LEN : natural := 32;
+  type imem_boot_t is array (0 to IMEM_BOOT_LEN - 1) of word_t;
+  constant IMEM_BOOT_IMAGE : imem_boot_t := (
+    -- BEGIN_IMEM_BOOT_IMAGE
+    0 => x"200006b7",
+    1 => x"00868793",
+    2 => x"00468713",
+    3 => x"00000613",
+    4 => x"00164613",
+    5 => x"00c6a023",
+    6 => x"00bec837",
+    7 => x"c2080813",
+    8 => x"fff80813",
+    9 => x"fe081ee3",
+    10 => x"04800513",
+    11 => x"024000ef",
+    12 => x"06900513",
+    13 => x"01c000ef",
+    14 => x"00d00513",
+    15 => x"014000ef",
+    16 => x"00a00513",
+    17 => x"00c000ef",
+    18 => x"fc9ff06f",
+    19 => x"00000013",
+    20 => x"0007a583",
+    21 => x"0015f593",
+    22 => x"fe058ce3",
+    23 => x"00a72023",
+    24 => x"00008067",
+    25 => x"00000013",
+    26 => x"00000013",
+    27 => x"00000013",
+    28 => x"00000013",
+    29 => x"00000013",
+    30 => x"00000013",
+    31 => x"00000013"
+    -- END_IMEM_BOOT_IMAGE
+  );
+
   impure function load_hex return ram_t is
     file f : text;
     variable l : line;
@@ -42,7 +82,7 @@ architecture rtl of imem is
       return mem;
     end if;
 
-    -- Embedded UART bring-up image (no filesystem dependency in synth).
+    -- Embedded UART bring-up image (no filesystem / package dependency).
     if INIT_HEX = "uart_hello" then
       for i in 0 to IMEM_BOOT_LEN - 1 loop
         if i < DEPTH_WORDS then

@@ -65,7 +65,7 @@ foreach rel $::wukong_xdc_files {
   add_files -fileset constrs_1 $f
 }
 
-# ----- UART demo hex (reference copy only; IMEM uses embedded imem_boot_pkg) -----
+# ----- UART demo hex (reference copy only; IMEM uses embedded array in imem.vhd) -----
 set hex_src [file join $repo_root $::wukong_hex_relpath]
 if {![file exists $hex_src]} {
   error "Missing hex: $hex_src"
@@ -77,7 +77,7 @@ file copy -force $hex_src $hex_proj
 add_files -fileset sources_1 $hex_proj
 set_property file_type {Memory Initialization Files} [get_files $hex_proj]
 
-# Embedded boot token "uart_hello" → rtl/mem/imem_boot_pkg.vhd (no textio at synth)
+# Embedded boot token "uart_hello" is a constant array inside rtl/mem/imem.vhd
 set_property generic {IMEM_INIT_HEX=uart_hello UART_CLKS_PER_BIT=434} [get_filesets sources_1]
 
 set_property top board_top [current_fileset]
@@ -92,7 +92,7 @@ puts ""
 puts "Project created successfully."
 puts "  XPR : $xpr"
 puts "  TOP : board_top"
-puts "  IMEM: embedded uart_hello (imem_boot_pkg) ; ref copy $hex_proj"
+puts "  IMEM: embedded uart_hello inside imem.vhd ; ref copy $hex_proj"
 puts ""
 puts "Next steps:"
 puts "  1. Open $xpr in Vivado  (or leave this batch open)"

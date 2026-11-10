@@ -10,7 +10,6 @@ set ::wukong_vhdl_sources [list \
   rtl/core/hazard_unit.vhd \
   rtl/core/regfile.vhd \
   rtl/core/cpu_top.vhd \
-  rtl/pkg/imem_boot_pkg.vhd \
   rtl/mem/imem.vhd \
   rtl/mem/dmem.vhd \
   rtl/mmio/mmio_leds.vhd \
