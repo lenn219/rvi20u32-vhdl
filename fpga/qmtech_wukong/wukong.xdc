@@ -28,6 +28,18 @@ set_property BITSTREAM.CONFIG.SPI_BUSWIDTH 4 [current_design]
 set_property -dict {PACKAGE_PIN M21 IOSTANDARD LVCMOS33} [get_ports clk_50mhz]
 create_clock -period 20.000 -name clk_50mhz [get_ports clk_50mhz]
 
+# CPU/UART clock: board_top divides clk_50mhz by 10 → 5 MHz (period 200 ns).
+# Combo IMEM/DMEM pipeline cannot close at 50 MHz (WNS was ≈ -84 ns).
+# Prefer the BUFG output; fall back to the divider FF Q.
+if {[llength [get_pins -quiet -hier -filter {REF_PIN_NAME == O && NAME =~ *u_bufg_cpu*}]]} {
+  create_generated_clock -name clk_cpu -source [get_ports clk_50mhz] \
+    -divide_by 10 [get_pins -hier -filter {REF_PIN_NAME == O && NAME =~ *u_bufg_cpu*}]
+} else {
+  create_generated_clock -name clk_cpu -source [get_ports clk_50mhz] \
+    -divide_by 10 [get_pins -hier -filter {NAME =~ *clk_cpu_int_reg*/Q}]
+}
+set_clock_groups -asynchronous -group [get_clocks clk_50mhz] -group [get_clocks clk_cpu]
+
 # -----------------------------------------------------------------------------
 # Keys — active-low (either resets the design)
 #   Key0 = H7 (QMTECH demo reset), Key1 = M6 (LiteX cpu_reset_n)

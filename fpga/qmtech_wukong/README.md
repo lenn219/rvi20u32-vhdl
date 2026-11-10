@@ -41,7 +41,8 @@ If D1+D4 are on but D5/D6 never move, the bitstream did not reach the user-LED p
 Sources: ChinaQMTECH schematics V2/V3, official Test01/Test05 demos, LiteX `qmtech_wukong.py`.
 
 **Part:** `xc7a100tfgg676-1`  
-**Baud:** 115200 8N1 (`UART_CLKS_PER_BIT=434` @ **50 MHz**)
+**Clocks:** board osc **50 MHz**; CPU+UART on **5 MHz** (÷10) so timing closes with combo IMEM/DMEM (50 MHz had WNS ≈ −84 ns).  
+**Baud:** 9600 8N1 (`UART_CLKS_PER_BIT=521` @ **5 MHz**)
 
 ## Which `/dev/ttyUSBx` is UART?
 
@@ -66,11 +67,11 @@ ls -l /dev/ttyUSB* /dev/serial/by-id/ 2>/dev/null
 IMEM is preloaded from the **embedded** `uart_hello` image (constant array inside `rtl/mem/imem.vhd`, from `sw/hex/uart_hello.hex`):
 
 1. Toggle LED0 via MMIO (`0x20000000`)
-2. Software delay ≈ **1.0 s** half-period at 50 MHz
-3. Print `Hi\r\n` on UART
+2. Software delay ≈ **1.0 s** half-period at **5 MHz** CPU (`1_250_000` loop count)
+3. Print `Hi\r\n` on UART @ **9600** (`CLKS_PER_BIT=521`)
 4. Repeat
 
-LED1 toggles from a hardware counter (~1 Hz) independent of the CPU.
+LED1 toggles from a hardware counter on the **50 MHz** domain (~1 Hz), independent of the CPU.
 
 ## Bring-up checklist
 
@@ -81,13 +82,13 @@ LED1 toggles from a hardware counter (~1 Hz) independent of the CPU.
 5. Serial:
 
 ```bash
-picocom -b 115200 -f n /dev/ttyUSB0
+picocom -b 9600 -f n /dev/ttyUSB0
 ```
 
 Expect repeating `Hi` once per LED0 half-period. Press **Key0** or **Key1** to reset.
 
-6. If no UART but D6 blinks: check baud **115200 8N1**, correct tty, and that mini-USB is plugged.
-7. If neither D5 nor D6 blink: bitstream/clock/pin issue — re-run `create_project.tcl` from this commit and rebuild.
+6. If no UART but D6 blinks: check baud **9600 8N1**, correct tty, mini-USB plugged, and that impl **WNS ≥ 0**.
+7. If neither D5 nor D6 blink: bitstream/clock/pin issue — re-run `create_project.tcl` and rebuild.
 
 ## Layout
 
