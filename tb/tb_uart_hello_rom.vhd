@@ -33,7 +33,6 @@ begin
     )
     port map (
       clk => clk,
-      clk_uart   => clk,
       rst => rst,
       halted => halted, halt_ill => halt_ill,
       leds => leds, uart_tx => uart_tx,

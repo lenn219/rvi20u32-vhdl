@@ -73,7 +73,6 @@ begin
     )
     port map (
       clk        => clk_50mhz,
-      clk_uart   => clk_50mhz,
       rst        => rst_sync,
       halted     => halted,
       halt_ill   => halt_ill,
