@@ -78,7 +78,8 @@ add_files -fileset sources_1 $hex_proj
 set_property file_type {Memory Initialization Files} [get_files $hex_proj]
 
 # Embedded boot token "uart_hello" is a constant array inside rtl/mem/imem.vhd
-set_property generic {IMEM_INIT_HEX=uart_hello UART_CLKS_PER_BIT=434} [get_filesets sources_1]
+# CPU runs at 5 MHz (÷10); 115200 needs CLKS_PER_BIT=43 (not 434 @ 50 MHz)
+set_property generic {IMEM_INIT_HEX=uart_hello UART_CLKS_PER_BIT=43} [get_filesets sources_1]
 
 set_property top board_top [current_fileset]
 update_compile_order -fileset sources_1
