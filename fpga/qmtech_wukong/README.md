@@ -41,8 +41,8 @@ If D1+D4 are on but D5/D6 never move, the bitstream did not reach the user-LED p
 Sources: ChinaQMTECH schematics V2/V3, official Test01/Test05 demos, LiteX `qmtech_wukong.py`.
 
 **Part:** `xc7a100tfgg676-1`  
-**Clocks:** board osc **50 MHz**; CPU+UART on **5 MHz** (÷10) so timing closes with combo IMEM/DMEM (50 MHz had WNS ≈ −84 ns).  
-**Baud:** 9600 8N1 (`UART_CLKS_PER_BIT=5208` on the **50 MHz** crystal; CPU stays at 5 MHz)
+**Clock:** **50 MHz** single domain (CPU + UART).  
+**Baud:** 9600 8N1 (`UART_CLKS_PER_BIT=5208` = 50e6/9600)
 
 ## Which `/dev/ttyUSBx` is UART?
 
@@ -67,7 +67,7 @@ ls -l /dev/ttyUSB* /dev/serial/by-id/ 2>/dev/null
 IMEM is preloaded from the **embedded** `uart_hello` image (constant array inside `rtl/mem/imem.vhd`, from `sw/hex/uart_hello.hex`):
 
 1. Toggle LED0 via MMIO (`0x20000000`)
-2. Software delay ≈ **1.0 s** half-period at **5 MHz** CPU (`1_250_000` loop count)
+2. Software delay ≈ **1.0 s** half-period at **50 MHz** (`12_500_000` loop count)
 3. Print `Hi\r\n` on UART @ **9600** (`CLKS_PER_BIT=5208` on 50 MHz)
 4. Repeat
 

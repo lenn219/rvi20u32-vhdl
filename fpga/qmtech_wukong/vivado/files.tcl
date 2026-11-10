@@ -1,5 +1,6 @@
 # Explicit source list for the Wukong FPGA build (sourced by create_project.tcl).
 # Paths are relative to the repository root ($repo_root).
+# Order: packages → leaf entities → cpu_top → board_top.
 
 set ::wukong_vhdl_sources [list \
   rtl/pkg/rv32_pkg.vhd \
@@ -9,12 +10,12 @@ set ::wukong_vhdl_sources [list \
   rtl/core/forward_unit.vhd \
   rtl/core/hazard_unit.vhd \
   rtl/core/regfile.vhd \
-  rtl/core/cpu_top.vhd \
   rtl/mem/imem.vhd \
   rtl/mem/dmem.vhd \
   rtl/mmio/mmio_leds.vhd \
   rtl/mmio/mmio_uart_tx.vhd \
   rtl/mmio/mmio_uart_tx_cdc.vhd \
+  rtl/core/cpu_top.vhd \
   fpga/qmtech_wukong/board_top.vhd \
 ]
 

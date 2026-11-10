@@ -3,20 +3,16 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.rv32_pkg.all;
 
-library unisim;
-use unisim.vcomponents.all;
-
 -- QMTECH Wukong (XC7A100T FGG676) board wrapper.
--- Oscillator: 50 MHz.
--- CPU runs on divided 5 MHz (combo IMEM/DMEM cannot close at 50 MHz).
--- UART TX runs on the 50 MHz crystal domain @ 9600 8N1 so wire baud is
--- independent of the CPU divider (garbage at 9600 was a ~10× bit-clock mismatch).
+-- Single free-running clock: 50 MHz board oscillator.
+-- UART baud is derived only from that clock:
+--   CLKS_PER_BIT = round(50e6 / 9600) = 5208  → 9600 8N1 on the wire.
+-- No fabric clock divider / BUFG / dual-clock UART — those made bring-up
+-- fragile (wrong effective baud, Vivado unisim/XDC issues).
 entity board_top is
   generic (
     IMEM_INIT_HEX     : string   := "uart_hello";
-    -- Baud domain = 50 MHz crystal. 50e6/9600 ≈ 5208.33 → 5208 (±0.09%).
-    UART_CLKS_PER_BIT : positive := 5208;
-    CLK_DIV_HALF      : positive := 5  -- toggle every 5 cycles → 5 MHz CPU
+    UART_CLKS_PER_BIT : positive := 5208  -- 50e6 / 9600
   );
   port (
     clk_50mhz : in  std_logic;
@@ -38,46 +34,19 @@ architecture rtl of board_top is
   signal leds_cpu  : std_logic_vector(7 downto 0);
   signal tx        : std_logic;
 
-  signal div_cnt     : natural range 0 to 31 := 0;
-  signal clk_cpu_int : std_logic := '0';
-  signal clk_cpu     : std_logic;
-
   signal hb_cnt : unsigned(25 downto 0) := (others => '0');
   signal hb_q   : std_logic := '0';
   signal led0_n : std_logic;
   signal led1_n : std_logic;
-
-  attribute KEEP       : string;
-  attribute DONT_TOUCH : string;
-  attribute KEEP of clk_cpu_int       : signal is "TRUE";
-  attribute DONT_TOUCH of clk_cpu_int : signal is "TRUE";
 begin
   rst_async <= (not key0_n) or (not key1_n);
 
-  process (clk_50mhz)
-  begin
-    if rising_edge(clk_50mhz) then
-      if div_cnt = CLK_DIV_HALF - 1 then
-        div_cnt <= 0;
-        clk_cpu_int <= not clk_cpu_int;
-      else
-        div_cnt <= div_cnt + 1;
-      end if;
-    end if;
-  end process;
-
-  u_bufg_cpu : BUFG
-    port map (
-      I => clk_cpu_int,
-      O => clk_cpu
-    );
-
-  process (clk_cpu, rst_async)
+  process (clk_50mhz, rst_async)
   begin
     if rst_async = '1' then
       rst_meta <= '1';
       rst_sync <= '1';
-    elsif rising_edge(clk_cpu) then
+    elsif rising_edge(clk_50mhz) then
       rst_meta <= '0';
       rst_sync <= rst_meta;
     end if;
@@ -103,7 +72,7 @@ begin
       IMEM_INIT_HEX     => IMEM_INIT_HEX
     )
     port map (
-      clk        => clk_cpu,
+      clk        => clk_50mhz,
       clk_uart   => clk_50mhz,
       rst        => rst_sync,
       halted     => halted,
@@ -115,7 +84,6 @@ begin
       imem_wdata => (others => '0')
     );
 
-  -- Idle-high UART; start bit is low (mmio_uart_tx). No inversion.
   uart_tx <= tx;
 
   led0_n <= not leds_cpu(0);
