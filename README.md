@@ -29,11 +29,13 @@ rtl/mem/      imem, dmem
 rtl/mmio/     leds, uart_tx
 tb/           VUnit tests (alu, regfile, dmem, cpu_smoke)
 sw/hex/       committed smoke.hex
-fpga/qmtech_wukong/  Wukong XC7A100T XDC + board_top + Vivado TCL
-fpga/a7_200t/        generic fpga_top (no pins)
+fpga/qmtech_wukong/         Wukong XC7A100T board_top + XDC
+fpga/qmtech_wukong/vivado/  **Openable Vivado project (TCL)**
+fpga/a7_200t/               generic fpga_top (no pins)
 ```
 
-FPGA bring-up (Wukong): [`fpga/qmtech_wukong/README.md`](fpga/qmtech_wukong/README.md) · [`docs/fpga/qmtech-wukong.md`](docs/fpga/qmtech-wukong.md)
+**Vivado on your PC:** [`fpga/qmtech_wukong/vivado/README.md`](fpga/qmtech_wukong/vivado/README.md)  
+Board/pins: [`fpga/qmtech_wukong/README.md`](fpga/qmtech_wukong/README.md)
 
 
 ## Memory map (v1)
