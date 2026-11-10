@@ -97,7 +97,7 @@ Pins: FPGA `uart_tx` on **E3** (idle high, start bit low) → bridge RXD; `uart_
 | Path | Role |
 |------|------|
 | `board_top.vhd` | Board wrapper |
-| `wukong.xdc` | Constraints (V2+V3 LEDs, both keys) |
+| `wukong.xdc` | Full board XDC: active `board_top` pins + commented catalog (SPI, SD, J10/J11/J12/JP2/JP3, HDMI, ETH, DDR3, V1) |
 | `vivado/` | Openable Vivado project TCL |
 | `../../sw/hex/uart_hello.hex` | Demo source image |
 | `../../rtl/mem/imem.vhd` | Contains embedded `uart_hello` boot image |
